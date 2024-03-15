@@ -22,10 +22,9 @@ class ChatViewModel:ViewModel() {
                     addPrompt(event.prompt,event.bitmap)
                         if (event.bitmap != null){
                             getResponseWithImage(event.prompt,event.bitmap)
-
                         }else{
                             getResponse(event.prompt)
-                        }
+                    }
                 }
             }
             is ChatUiEvent.UpdatePrompt -> {

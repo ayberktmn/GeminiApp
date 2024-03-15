@@ -15,9 +15,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,6 +31,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +43,10 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +69,7 @@ import coil.size.Size
 import com.ayberk.geminiapp.geminichatbot.ui.ChatUiEvent
 import com.ayberk.geminiapp.geminichatbot.ui.ChatViewModel
 import com.ayberk.geminiapp.ui.theme.GeminiAppTheme
+import com.ayberk.geminiapp.ui.theme.green
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -83,27 +91,41 @@ class MainActivity : ComponentActivity() {
             GeminiAppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = Color.Black
                 ) {
                     Scaffold(
                         topBar = {
                             Box(
-                               modifier = Modifier
-                                   .fillMaxWidth()
-                                   .background(Color.Black)
-                                   .height(55.dp)
-                                   .padding(horizontal = 16.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black)
+                                    .height(55.dp)
+                                    .padding(horizontal = 16.dp)
                             ) {
-                                Text(
-                                    modifier = Modifier.align(Alignment.CenterStart),
-                                    text = stringResource(id = R.string.app_name),
-                                    fontSize = 20.sp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxHeight(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.robot),
+                                        contentDescription = "Icon",
+                                        modifier = Modifier.size(35.dp),
+                                        tint = Color.White
+                                    )
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Text(
+                                        text = stringResource(id = R.string.app_name),
+                                        fontSize = 20.sp,
+                                        color = Color.White,
+                                    )
+                                }
                             }
                         }
-
-                    ) {
+                    ){
                         ChatScreen(paddingValues = it)
                     }
                 }
@@ -118,6 +140,7 @@ class MainActivity : ComponentActivity() {
         val chatState = chatViewModel.chatState.collectAsState().value
 
         val bitmap = getBitmap()
+        var isLoading by remember { mutableStateOf(false) } // Yükleme durumu
 
         Column(
             modifier = Modifier
@@ -134,21 +157,29 @@ class MainActivity : ComponentActivity() {
             ){
                 itemsIndexed(chatState.chatList) { index, chat ->
                     if (chat.isFromUser){
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(start = 16.dp),
+                                color = Color.Black
+                            )
+                        }
                         UserChatItem(
                             prompt = chat.prompt, bitmap = chat.bitmap
                         )
-                    } else{
+                    }
+                    else{
                         ModelChatItem(response = chat.prompt)
+                        isLoading = false
                     }
                 }
             }
+
             Row (
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ){
-
                 Column{
                     bitmap?.let {
                         Image(
@@ -161,6 +192,7 @@ class MainActivity : ComponentActivity() {
                             bitmap = it.asImageBitmap(),
                         )
                     }
+
                     Icon(
                         modifier = Modifier
                             .size(40.dp)
@@ -177,7 +209,7 @@ class MainActivity : ComponentActivity() {
                         tint = Color.Black
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.width(8.dp))
 
                 OutlinedTextField(
@@ -185,7 +217,7 @@ class MainActivity : ComponentActivity() {
                         .weight(1f),
                     value = chatState.prompt,
                     onValueChange = { chatViewModel.onEvent(ChatUiEvent.UpdatePrompt(it)) },
-                    placeholder = { Text(text = "Type a prompt") },
+                    placeholder = { Text(text = "Bana Sor...") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         cursorColor = Color.Gray,
                         focusedBorderColor = Color.Gray,
@@ -200,13 +232,15 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(40.dp)
                         .clickable {
-                          chatViewModel.onEvent(ChatUiEvent.SendPrompt(chatState.prompt,bitmap))
+                            isLoading = true
+                            chatViewModel.onEvent(ChatUiEvent.SendPrompt(chatState.prompt, bitmap))
                             uriState.update { "" }
                         },
                     painter = painterResource(id = R.drawable.send) ,
                     contentDescription = "Send prompt",
                     tint = Color.Black
                 )
+                Spacer(modifier = Modifier.width(8.dp))
             }
         }
     }
@@ -233,8 +267,9 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(16.dp),
+                    .background(green)
+                    .padding(16.dp)
+                    .width(IntrinsicSize.Min),
                 text = prompt,
                 fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onPrimary
@@ -246,17 +281,31 @@ class MainActivity : ComponentActivity() {
     fun ModelChatItem(response: String) {
         Column(
             modifier = Modifier.padding(end = 100.dp, bottom = 22.dp)
+
         ) {
-            Text(
+            Row (
+                verticalAlignment = Alignment.Bottom, // Icon'u alt hizala
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.tertiary)
-                    .padding(16.dp),
-                text = response,
-                fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.onTertiary
-            )
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.robot),
+                    contentDescription = "Icon",
+                    modifier = Modifier.size(35.dp),
+                    tint = Color.Black
+                )
+
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.Black)
+                        .padding(16.dp),
+                    text = response,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onTertiary
+                )
+
+            }
         }
     }
 
