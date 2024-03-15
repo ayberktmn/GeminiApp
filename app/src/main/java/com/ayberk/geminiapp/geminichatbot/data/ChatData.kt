@@ -26,8 +26,7 @@ object ChatData {
                 bitmap = null,
                 isFromUser = false
             )
-
-        } catch (e:ResponseStoppedException){
+        } catch (e:Exception){
             return Chat(
                 prompt = e.message ?: "error",
                 bitmap = null,
@@ -58,7 +57,7 @@ object ChatData {
                 isFromUser = false
             )
 
-        } catch (e:ResponseStoppedException){
+        } catch (e:Exception){
             return Chat(
                 prompt = e.message ?: "error",
                 bitmap = null,
