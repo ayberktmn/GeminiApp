@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.GeminiApp" parent="android:Theme.Material.NoActionBar">
+        <!-- ActionBar rengini siyah yap -->
+        <item name="android:colorBackground">@android:color/black</item>
+        <!-- ActionBar ikonlarını beyaz yap -->
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <!-- ActionBar yazı rengini beyaz yap -->
+        <item name="android:textColorPrimaryInverse">@android:color/white</item>
+        <!-- Primary rengi siyah yap -->
+        <item name="android:colorPrimary">@android:color/black</item>
 
-    <style name="Theme.GeminiApp" parent="android:Theme.Material.Light.NoActionBar" />
+    </style>
 </resources>

@@ -31,6 +31,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -42,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,7 +73,9 @@ import coil.size.Size
 import com.ayberk.geminiapp.geminichatbot.ui.ChatUiEvent
 import com.ayberk.geminiapp.geminichatbot.ui.ChatViewModel
 import com.ayberk.geminiapp.ui.theme.GeminiAppTheme
+import com.ayberk.geminiapp.ui.theme.black
 import com.ayberk.geminiapp.ui.theme.green
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -141,6 +147,7 @@ class MainActivity : ComponentActivity() {
 
         val bitmap = getBitmap()
         var isLoading by remember { mutableStateOf(false) } // Yükleme durumu
+        var isUserTyping by remember { mutableStateOf(false) } // Kullanıcının yazı yazma durumu
 
         Column(
             modifier = Modifier
@@ -154,33 +161,29 @@ class MainActivity : ComponentActivity() {
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
                 reverseLayout = true
-            ){
+            ) {
                 itemsIndexed(chatState.chatList) { index, chat ->
-                    if (chat.isFromUser){
+                    if (chat.isFromUser) {
                         if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.padding(start = 16.dp),
-                                color = Color.Black
-                            )
+                            LoadingIndicator()
                         }
                         UserChatItem(
                             prompt = chat.prompt, bitmap = chat.bitmap
                         )
-                    }
-                    else{
-                        ModelChatItem(response = chat.prompt)
+                    } else {
+                        ModelChatItem(response = chat.prompt, isLoading = isLoading)
                         isLoading = false
                     }
                 }
             }
 
-            Row (
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
-            ){
-                Column{
+            ) {
+                Column {
                     bitmap?.let {
                         Image(
                             modifier = Modifier
@@ -204,7 +207,7 @@ class MainActivity : ComponentActivity() {
                                         .build()
                                 )
                             },
-                        painter = painterResource(id = R.drawable.image) ,
+                        painter = painterResource(id = R.drawable.image),
                         contentDescription = "Add Photo",
                         tint = Color.Black
                     )
@@ -216,7 +219,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .weight(1f),
                     value = chatState.prompt,
-                    onValueChange = { chatViewModel.onEvent(ChatUiEvent.UpdatePrompt(it)) },
+                    onValueChange = {
+                        chatViewModel.onEvent(ChatUiEvent.UpdatePrompt(it))
+                        isUserTyping = it.isNotBlank() // Kullanıcı yazı yazdığında true olur
+                    },
                     placeholder = { Text(text = "Bana Sor...") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         cursorColor = Color.Gray,
@@ -232,16 +238,19 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(40.dp)
                         .clickable {
-                            isLoading = true
                             chatViewModel.onEvent(ChatUiEvent.SendPrompt(chatState.prompt, bitmap))
                             uriState.update { "" }
+                            isLoading = true
                         },
-                    painter = painterResource(id = R.drawable.send) ,
+                    painter = painterResource(id = R.drawable.send),
                     contentDescription = "Send prompt",
                     tint = Color.Black
                 )
-                Spacer(modifier = Modifier.width(8.dp))
             }
+        }
+        // Kullanıcı mesaj yazdığında CardGemini gizlensin
+        if (!isUserTyping) {
+            CardGemini()
         }
     }
 
@@ -278,10 +287,9 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun ModelChatItem(response: String) {
+    fun ModelChatItem(response: String, isLoading: Boolean) {
         Column(
             modifier = Modifier.padding(end = 100.dp, bottom = 22.dp)
-
         ) {
             Row (
                 verticalAlignment = Alignment.Bottom, // Icon'u alt hizala
@@ -305,6 +313,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.onTertiary
                 )
 
+                // isLoading true ise, LoadingIndicator'ı göster
+                if (isLoading) {
+                    LoadingIndicator()
+                }
             }
         }
     }
@@ -325,4 +337,43 @@ class MainActivity : ComponentActivity() {
         }
         return null
     }
+
+    @Composable
+    fun LoadingIndicator() {
+        CircularProgressIndicator(
+            modifier = Modifier.padding(start = 16.dp),
+            color = Color.Black
+        )
+    }
 }
+
+@Composable
+fun CardGemini() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .size(130.dp)
+                .clickable {},
+            colors = CardDefaults.cardColors(black)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painterResource(id = R.drawable.geminilogo),
+                    contentDescription = "geminilogo",
+                    modifier = Modifier
+                        .size(100.dp),
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+
+
+
