@@ -222,7 +222,8 @@ class MainActivity : ComponentActivity() {
                     onValueChange = {
                         chatViewModel.onEvent(ChatUiEvent.UpdatePrompt(it))
                         isUserTyping = it.isNotBlank() // Kullanıcı yazı yazdığında true olur
-                    },
+                        isUserTyping = true
+                        },
                     placeholder = { Text(text = "Bana Sor...") },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         cursorColor = Color.Gray,
